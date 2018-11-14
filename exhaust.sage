@@ -18,6 +18,9 @@
 ##
 ###############################################################################
 
+n = 5
+k = 3
+
 # Set up our field and polynomial ring:
 # a is a primitive element for F; in this version of sage, it is a root of 
 # x^8 + x^4 + x^3 + x^2 + 1
@@ -41,17 +44,17 @@ def linIndOverB(x,y):
 # P should consist of two polynomials in R; istar is an index so that alpha^* =
 # a^(istar).
 #
-def checkSchemeOverB( P, istar ):
+def checkSchemeOverB(P, istar):
     if len(P) != 2:
         print('P should consist of only two polynomials!')
         return None
     s0 = P[0](a^(istar))
     s1 = P[1](a^(istar))
-    if (not linIndOverB( s0,s1 )) or s0 == 0 or s1 == 0:
+    if (not linIndOverB(s0, s1)) or s0 == 0 or s1 == 0:
         return None
     ret = 0
-    for i in range(14):
-        if i!= istar:
+    for i in range(n):
+        if i != istar:
             bw = 0
             t0 = P[0](a^i)
             t1 = P[1](a^i)
@@ -61,7 +64,7 @@ def checkSchemeOverB( P, istar ):
                 bw += 1
             elif t0 == 0 and t1 == 0:
                 bw += 0
-            elif not linIndOverB( t0,t1 ):
+            elif not linIndOverB(t0, t1):
                 bw += 1
             else:
                 bw += 2
@@ -82,14 +85,14 @@ def exhaust_over_F16(goodEnough=64,istar=0):
     bestBW = Infinity
     bestPolys = []
     count = 0
-    S = [ a^i for i in range(1,14) ]
-    for T0 in Subsets(S,3):
-        for T1 in Subsets( S, 3):
+    S = [ a^i for i in range(1,n) ]
+    for T0 in Subsets(F, n-k):
+        for T1 in Subsets(F, n-k):
             count += 1
-            p0 = prod( [ (X + x) for x in T0 ] )
-            p1 = prod( [ (X + x) for x in T1 ] )
-            P = [p0,p1]
-            bw = checkSchemeOverB( P, istar )
+            p0 = sum([ (X^j * x) for x, j in zip(T0, range(n-k)) ])
+            p1 = sum([ (X^j * x) for x, j in zip(T1, range(n-k)) ])
+            P = [p0, p1]
+            bw = checkSchemeOverB(P, istar)
             if bw != None:
                 if bw < bestBW:
                     bestBW = bw
@@ -111,12 +114,12 @@ def exhaustMore(goodEnough=64, outf='output.txt'):
                  '\\alpha^*$   \\\\ \n'
                 ))
     F.write('\\hline')
-    for i in range(14):
+    for i in range(n):
         bw, polys = exhaust_over_F16( goodEnough, i )
         F.write('$ \\zeta^{' + str(i) +  '}$ & ')
         print i, bw
         for p in polys:
-            polyStr = prettyPrintFactored(p)
+            polyStr = prettyPrint(p)
             print polyStr
             F.write('$  ' + polyStr + '$ & ')
         print '===================='
@@ -136,7 +139,7 @@ def prettyPrint(p):
             pass
         else:
             ret += '\\zeta^' + c[i].log_repr()
-        ret += '\\,\\bX^{' + str(i) + '}'
+        ret += '\\,\\b X^{' + str(i) + '}'
         if i < len(c) -1:
             ret +=  ' + '
     return ret
@@ -150,6 +153,11 @@ def prettyPrintFactored(p):
         if multiplicity != 1:
             print 'Now that\'s strange'
             return None
-        ret += '(\\bX + \\zeta^{' + rt.log_repr() + '})'
+        ret += '(\\b X + \\zeta^{' + rt.log_repr() + '})'
     return ret
 
+def main():
+    exhaustMore(goodEnough=4)
+
+if __name__ == '__main__':
+    main()
