@@ -45,12 +45,12 @@ def linIndOverB(x,y):
 #
 # Currently only works for B = F_16 and F = F_256
 #
-def checkSchemeOverB(evals=[ a^i for i in range(n) ], P, istar):
+def checkSchemeOverB(evals, P, istar):
     if len(P) != t:
         print 'P should consist of only', t, 'polynomials!'
         return None
-    s0 = P[0](evals[i])
-    s1 = P[1](evals[i])
+    s0 = P[0](evals[istar])
+    s1 = P[1](evals[istar])
     if (not linIndOverB(s0, s1)) or s0 == 0 or s1 == 0:
         return None
     ret = 0
@@ -82,39 +82,42 @@ def checkSchemeOverB(evals=[ a^i for i in range(n) ], P, istar):
 # goodEnough is a threshold: stop searching if you find a scheme with that many
 # bits or fewer.
 #
-def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64,
-                     istar=0, factored=False):
+def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
+                     factored=False):
     bestBW = Infinity
     bestPolys = []
     count = 0
     drawFrom = None
     if factored:
         drawFrom = evals
-    else
+    else:
         drawFrom = F
-    for T in Combinations(drawFrom, t):
-        count += 1
-        p0 = p1 = None
-        if factored:
-            p0 = prod([ (X + x) for x in T[0] ])
-            p1 = prod([ (X + x) for x in T[1] ])
-        else:
-            p0 = sum([ (X^j * x) for x, j in zip(T[0], range(n-k)) ])
-            p1 = sum([ (X^j * x) for x, j in zip(T[1], range(n-k)) ])
-        P = [p0, p1]
-        bw = checkSchemeOverB(evals, P, istar)
-        if bw != None:
-            if bw < bestBW:
-                bestBW = bw
-                bestPolys = P
-            if bw <= goodEnough:
-                print 'SCHEME WITH BW=', bw, ':', p0, p1
+    subsets = Subsets(drawFrom, n-k)
+    for y in range(len(subsets)):
+        for z in range(y+1, len(subsets)):
+            T = [ subsets[y], subsets[z] ]
+            count += 1
+            if factored:
+                p0 = prod([ (X + x) for x in T[0] ])
+                p1 = prod([ (X + x) for x in T[1] ])
+            else:
+                p0 = sum([ (X^j * x) for x, j in zip(T[0], range(n-k)) ])
+                p1 = sum([ (X^j * x) for x, j in zip(T[1], range(n-k)) ])
+            P = [ p0, p1 ]
+            bw = checkSchemeOverB(evals, P, istar)
+            if bw != None:
+                if bw < bestBW:
+                    bestBW = bw
+                    bestPolys = P
+                # if bw <= goodEnough:
+                #    print 'SCHEME WITH BW=', bw, ':', p0, p1
 
-        if count % 1000 == 0:
-            print 'Check', count, 'best is', bestBW, 'with', bestPolys
-        if bestBW <= goodEnough:
-            return bestBW, bestPolys
+            if count % 1000 == 0:
+                print 'Check', count, 'best is', bestBW, 'with', bestPolys
+            if bestBW <= goodEnough:
+                return bestBW, bestPolys
     return bestBW, bestPolys
+
 #
 # Run exhaust_over_F16 for each alpha^*, and write the results to outf (as
 # LaTeX code).
@@ -128,8 +131,8 @@ def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
                 ))
     F.write('\\hline')
     for i in range(n):
-        bw, polys = exhaust_over_F16(evals, goodEnough, i)
-        F.write('$ \\zeta^{' + evals[i].log_repr() +  '}$ & ')
+        bw, polys = exhaust_over_F16(evals, goodEnough, i, factored)
+        F.write('$ \\zeta^{' + evals[i]._log_repr() +  '}$ & ')
         print i, bw
         for p in polys:
             polyStr = None
@@ -176,7 +179,7 @@ def prettyPrintFactored(p):
     return ret
 
 def main():
-    exhaustMore(goodEnough=23, factored=True)
+    exhaustMore(goodEnough=23, factored=False)
 
 if __name__ == '__main__':
     main()
