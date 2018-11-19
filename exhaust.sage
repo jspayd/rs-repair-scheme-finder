@@ -81,7 +81,7 @@ def checkSchemeOverB(P, istar):
 # goodEnough is a threshold: stop searching if you find a scheme with that many
 # bits or fewer.
 #
-def exhaust_over_F16(goodEnough=64,istar=0):
+def exhaust_over_F16(goodEnough=64, istar=0):
     bestBW = Infinity
     bestPolys = []
     count = 0
@@ -97,9 +97,11 @@ def exhaust_over_F16(goodEnough=64,istar=0):
                 if bw < bestBW:
                     bestBW = bw
                     bestPolys = P
-                #if bw < 65:
-                #    print 'SCHEME WITH BW=',bw,':',p0,p1
+                if bw <= goodEnough:
+                    print 'SCHEME WITH BW=',bw,':',p0,p1
 
+            # if count%1000 == 0:
+            #     print "Check",count,"best is",bestBW,"with",bestPolys
             if bestBW <= goodEnough:
                 return bestBW, bestPolys
     return bestBW, bestPolys
@@ -130,7 +132,7 @@ def exhaustMore(goodEnough=64, outf='output.txt'):
 # print out a polynomial as nice latex code.
 #
 def prettyPrint(p):
-    c = p.coeffs()
+    c = p.coefficients(sparse=False)
     ret = ''
     for i in range(len(c)):
         if c[i] == 0:
@@ -138,7 +140,7 @@ def prettyPrint(p):
         elif c[i] == 1:
             pass
         else:
-            ret += '\\zeta^' + c[i].log_repr()
+            ret += '\\zeta^{' + c[i]._log_repr() + '}'
         ret += '\\,\\b X^{' + str(i) + '}'
         if i < len(c) -1:
             ret +=  ' + '
@@ -153,11 +155,11 @@ def prettyPrintFactored(p):
         if multiplicity != 1:
             print 'Now that\'s strange'
             return None
-        ret += '(\\b X + \\zeta^{' + rt.log_repr() + '})'
+        ret += '(\\b X + \\zeta^{' + rt._log_repr() + '})'
     return ret
 
 def main():
-    exhaustMore(goodEnough=4)
+    exhaustMore(goodEnough=23)
 
 if __name__ == '__main__':
     main()
