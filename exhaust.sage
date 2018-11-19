@@ -3,7 +3,7 @@
 ## This file finds a linear repair scheme for the (10,14)-GRS code implemented
 ## at https://github.com/facebookarchive/hadoop-20/tree/master/src/contrib/raid/src/java/org/apache/hadoop/raid
 ##
-## This code is a GRS code with evaluation points A = {a, a^2, ..., a^13},
+## This code is a GRS code with evaluation points A = {1, a, a^2, ..., a^13},
 ## where a is a primitive element of GF(2^8).
 ##
 ## By our work, it suffices to find, for each alpha^* = a^{i*} in A, a set of
@@ -45,20 +45,20 @@ def linIndOverB(x,y):
 #
 # Currently only works for B = F_16 and F = F_256
 #
-def checkSchemeOverB(P, istar):
+def checkSchemeOverB(evals=[ a^i for i in range(n) ], P, istar):
     if len(P) != t:
-        print('P should consist of only' + t + ' polynomials!')
+        print 'P should consist of only', t, 'polynomials!'
         return None
-    s0 = P[0](a^(istar))
-    s1 = P[1](a^(istar))
+    s0 = P[0](evals[i])
+    s1 = P[1](evals[i])
     if (not linIndOverB(s0, s1)) or s0 == 0 or s1 == 0:
         return None
     ret = 0
     for i in range(n):
         if i != istar:
             bw = 0
-            t0 = P[0](a^i)
-            t1 = P[1](a^i)
+            t0 = P[0](evals[i])
+            t1 = P[1](evals[i])
             if t0 == 0 and t1 != 0:
                 bw += 1
             elif t0 != 0 and t1 == 0:
@@ -82,12 +82,17 @@ def checkSchemeOverB(P, istar):
 # goodEnough is a threshold: stop searching if you find a scheme with that many
 # bits or fewer.
 #
-def exhaust_over_F16(goodEnough=64, istar=0, factored=False):
+def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64,
+                     istar=0, factored=False):
     bestBW = Infinity
     bestPolys = []
     count = 0
-    S = [ a^i for i in range(1,n) ]
-    for T in Combinations(Subsets(F, n-k), t):
+    drawFrom = None
+    if factored:
+        drawFrom = evals
+    else
+        drawFrom = F
+    for T in Combinations(drawFrom, t):
         count += 1
         p0 = p1 = None
         if factored:
@@ -97,7 +102,7 @@ def exhaust_over_F16(goodEnough=64, istar=0, factored=False):
             p0 = sum([ (X^j * x) for x, j in zip(T[0], range(n-k)) ])
             p1 = sum([ (X^j * x) for x, j in zip(T[1], range(n-k)) ])
         P = [p0, p1]
-        bw = checkSchemeOverB(P, istar)
+        bw = checkSchemeOverB(evals, P, istar)
         if bw != None:
             if bw < bestBW:
                 bestBW = bw
@@ -114,7 +119,8 @@ def exhaust_over_F16(goodEnough=64, istar=0, factored=False):
 # Run exhaust_over_F16 for each alpha^*, and write the results to outf (as
 # LaTeX code).
 #
-def exhaustMore(goodEnough=64, outf='output.txt', factored=False):
+def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
+                outf='output.txt', factored=False):
     F = open(outf, 'w')
     F.write('\\begin{tabular}{|c|cc|c|}\n') 
     F.write(('$ \\alpha^*$   & Polynomials & &Bandwidth (in bits) for $ '
@@ -122,8 +128,8 @@ def exhaustMore(goodEnough=64, outf='output.txt', factored=False):
                 ))
     F.write('\\hline')
     for i in range(n):
-        bw, polys = exhaust_over_F16( goodEnough, i )
-        F.write('$ \\zeta^{' + str(i) +  '}$ & ')
+        bw, polys = exhaust_over_F16(evals, goodEnough, i)
+        F.write('$ \\zeta^{' + evals[i].log_repr() +  '}$ & ')
         print i, bw
         for p in polys:
             polyStr = None
