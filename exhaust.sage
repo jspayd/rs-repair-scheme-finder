@@ -103,10 +103,10 @@ def exhaust_over_F16(goodEnough=64, istar=0, factored=False):
                 bestBW = bw
                 bestPolys = P
             if bw <= goodEnough:
-                print 'SCHEME WITH BW=',bw,':',p0,p1
+                print 'SCHEME WITH BW=', bw, ':', p0, p1
 
-        # if count%1000 == 0:
-        #     print "Check",count,"best is",bestBW,"with",bestPolys
+        if count % 1000 == 0:
+            print 'Check', count, 'best is', bestBW, 'with', bestPolys
         if bestBW <= goodEnough:
             return bestBW, bestPolys
     return bestBW, bestPolys
