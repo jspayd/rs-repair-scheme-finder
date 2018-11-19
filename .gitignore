@@ -1,3 +1,7 @@
 *.swp
 *.sage.py
 *.txt
+*.tex
+*.aux
+*.log
+*.pdf
