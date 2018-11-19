@@ -123,9 +123,12 @@ def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
 # LaTeX code).
 #
 def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
-                outf='output.txt', factored=False):
+                outf='output.tex', factored=False):
     F = open(outf, 'w')
+    F.write('\\documentclass{article}\n\n')
+    F.write('\\begin{document}')
     F.write('\\begin{tabular}{|c|cc|c|}\n') 
+    F.write('\\hline')
     F.write(('$ \\alpha^*$   & Polynomials & &Bandwidth (in bits) for $ '
                  '\\alpha^*$   \\\\ \n'
                 ))
@@ -144,7 +147,8 @@ def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
             F.write('$  ' + polyStr + '$ & ')
         print '===================='
         F.write(str(bw) + '\\\\ \hline \n')
-    F.write('\end{tabular}\n')
+    F.write('\\end{tabular}\n')
+    F.write('\\end{document}')
     F.close()
 
 #
@@ -160,7 +164,7 @@ def prettyPrint(p):
             pass
         else:
             ret += '\\zeta^{' + c[i]._log_repr() + '}'
-        ret += '\\,\\b X^{' + str(i) + '}'
+        ret += '\\,\\mathbf{X}^{' + str(i) + '}'
         if i < len(c) -1:
             ret +=  ' + '
     return ret
@@ -175,7 +179,7 @@ def prettyPrintFactored(p):
         if multiplicity != 1:
             print 'Now that\'s strange'
             return None
-        ret += '(\\b X + \\zeta^{' + rt._log_repr() + '})'
+        ret += '(\\mathbf{X} + \\zeta^{' + rt._log_repr() + '})'
     return ret
 
 def main():
