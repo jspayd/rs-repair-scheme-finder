@@ -20,6 +20,7 @@
 
 n = 5
 k = 3
+t = 2
 
 # Set up our field and polynomial ring:
 # a is a primitive element for F; in this version of sage, it is a root of 
@@ -32,9 +33,7 @@ R.<X> = PolynomialRing(F)
 # pretty easy test :)
 #
 def linIndOverB(x,y):
-    if x^(15) == y^(15):
-        return False
-    return True
+    return x^(15) == y^(15)
 
 #
 # returns None if the scheme corresponding to P will fail to recover f(alpha^*)
@@ -44,9 +43,11 @@ def linIndOverB(x,y):
 # P should consist of two polynomials in R; istar is an index so that alpha^* =
 # a^(istar).
 #
+# Currently only works for B = F_16 and F = F_256
+#
 def checkSchemeOverB(P, istar):
-    if len(P) != 2:
-        print('P should consist of only two polynomials!')
+    if len(P) != t:
+        print('P should consist of only' + t + ' polynomials!')
         return None
     s0 = P[0](a^(istar))
     s1 = P[1](a^(istar))
@@ -81,35 +82,39 @@ def checkSchemeOverB(P, istar):
 # goodEnough is a threshold: stop searching if you find a scheme with that many
 # bits or fewer.
 #
-def exhaust_over_F16(goodEnough=64, istar=0):
+def exhaust_over_F16(goodEnough=64, istar=0, factored=False):
     bestBW = Infinity
     bestPolys = []
     count = 0
     S = [ a^i for i in range(1,n) ]
-    for T0 in Subsets(F, n-k):
-        for T1 in Subsets(F, n-k):
-            count += 1
-            p0 = sum([ (X^j * x) for x, j in zip(T0, range(n-k)) ])
-            p1 = sum([ (X^j * x) for x, j in zip(T1, range(n-k)) ])
-            P = [p0, p1]
-            bw = checkSchemeOverB(P, istar)
-            if bw != None:
-                if bw < bestBW:
-                    bestBW = bw
-                    bestPolys = P
-                if bw <= goodEnough:
-                    print 'SCHEME WITH BW=',bw,':',p0,p1
+    for T in Combinations(Subsets(F, n-k), t):
+        count += 1
+        p0 = p1 = None
+        if factored:
+            p0 = prod([ (X + x) for x in T[0] ])
+            p1 = prod([ (X + x) for x in T[1] ])
+        else:
+            p0 = sum([ (X^j * x) for x, j in zip(T[0], range(n-k)) ])
+            p1 = sum([ (X^j * x) for x, j in zip(T[1], range(n-k)) ])
+        P = [p0, p1]
+        bw = checkSchemeOverB(P, istar)
+        if bw != None:
+            if bw < bestBW:
+                bestBW = bw
+                bestPolys = P
+            if bw <= goodEnough:
+                print 'SCHEME WITH BW=',bw,':',p0,p1
 
-            # if count%1000 == 0:
-            #     print "Check",count,"best is",bestBW,"with",bestPolys
-            if bestBW <= goodEnough:
-                return bestBW, bestPolys
+        # if count%1000 == 0:
+        #     print "Check",count,"best is",bestBW,"with",bestPolys
+        if bestBW <= goodEnough:
+            return bestBW, bestPolys
     return bestBW, bestPolys
 #
 # Run exhaust_over_F16 for each alpha^*, and write the results to outf (as
 # LaTeX code).
 #
-def exhaustMore(goodEnough=64, outf='output.txt'):
+def exhaustMore(goodEnough=64, outf='output.txt', factored=False):
     F = open(outf, 'w')
     F.write('\\begin{tabular}{|c|cc|c|}\n') 
     F.write(('$ \\alpha^*$   & Polynomials & &Bandwidth (in bits) for $ '
@@ -121,13 +126,18 @@ def exhaustMore(goodEnough=64, outf='output.txt'):
         F.write('$ \\zeta^{' + str(i) +  '}$ & ')
         print i, bw
         for p in polys:
-            polyStr = prettyPrint(p)
+            polyStr = None
+            if factored:
+                polyStr = prettyPrintFactored(p)
+            else:
+                polyStr = prettyPrint(p)
             print polyStr
             F.write('$  ' + polyStr + '$ & ')
         print '===================='
         F.write(str(bw) + '\\\\ \hline \n')
     F.write('\end{tabular}\n')
     F.close()
+
 #
 # print out a polynomial as nice latex code.
 #
@@ -145,6 +155,7 @@ def prettyPrint(p):
         if i < len(c) -1:
             ret +=  ' + '
     return ret
+
 #
 # print out a polynomial with roots in r as nice latex code
 #
@@ -159,7 +170,7 @@ def prettyPrintFactored(p):
     return ret
 
 def main():
-    exhaustMore(goodEnough=23)
+    exhaustMore(goodEnough=23, factored=True)
 
 if __name__ == '__main__':
     main()
