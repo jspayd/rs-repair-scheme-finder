@@ -24,66 +24,67 @@ t = 2
 subfield = 16
 
 # Set up our field and polynomial ring:
-# a is a primitive element for F; in this version of sage, it is a root of 
-# x^8 + x^4 + x^3 + x^2 + 1
+# a is a primitive element for F.
 F.<a> = GF(subfield^t)
 R.<X> = PolynomialRing(F)
 
 #
-# returns true if x and y are linearly independent over B = GF(2^4).  This is a
-# pretty easy test :)
+# returns true if x and y are linearly independent over B.  This is a pretty
+# easy test :)
 #
-def linIndOverB(x,y):
+def linIndOverB(x, y):
     return x^(subfield-1) == y^(subfield-1)
+
+#
+# given a set of values in F, returns the rank of that set over B.
+#
+def rank(vals):
+    eq_classes = []
+    for val in vals:
+        if val == 0: continue
+        placed = False
+        for eq_class in eq_classes:
+            if not linIndOverB(val, eq_class[0]):
+                eq_class.append(val)
+                placed = True
+        if not placed:
+            eq_classes.append([val])
+    return len(eq_classes)
 
 #
 # returns None if the scheme corresponding to P will fail to recover f(alpha^*)
 # otherwise returns the number of bits needed to recover f(alpha^*) with this
 # scheme
 #
-# P should consist of two polynomials in R; istar is an index so that alpha^* =
-# a^(istar).
-#
-# Currently only works for B = F_16 and F = F_256
+# P should consist of t polynomials in R; istar is an index so that alpha^* =
+# evals[istar].
 #
 def checkSchemeOverB(evals, P, istar):
     if len(P) != t:
         print 'P should consist of only', t, 'polynomials!'
         return None
-    s0 = P[0](evals[istar])
-    s1 = P[1](evals[istar])
-    if (not linIndOverB(s0, s1)) or s0 == 0 or s1 == 0:
+
+    s = [ p(evals[istar]) for p in P ]
+    if rank(s) != t:
         return None
     ret = 0
     for i in range(n):
         if i != istar:
-            bw = 0
-            t0 = P[0](evals[i])
-            t1 = P[1](evals[i])
-            if t0 == 0 and t1 != 0:
-                bw += 1
-            elif t0 != 0 and t1 == 0:
-                bw += 1
-            elif t0 == 0 and t1 == 0:
-                bw += 0
-            elif not linIndOverB(t0, t1):
-                bw += 1
-            else:
-                bw += 2
-            ret += bw
-    ret = ret*4
+            t_ = [ p(evals[i]) for p in P ]
+            ret += rank(t_)
+    ret = ret * log(subfield, 2)
     return ret
 
 #
-# For a fixed alpha^* = a^(istar), exhaust over all linear repair schemes over
-# B = GF(16) so that the two polynomials p0 and p1 each have three roots in the
-# evaluation set. This is pretty restrictive, but already it's good enough to
-# get nontrivial results.
+# For a fixed alpha^* = evals[istar], exhaust over all linear repair schemes
+# over B. If factored is True, this is limited to the repair schemes where the
+# polynomials each have n-k-1 roots in the evaluation set. This is pretty
+# restrictive, but already it's good enough to get nontrivial results.
 #
 # goodEnough is a threshold: stop searching if you find a scheme with that many
 # bits or fewer.
 #
-def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
+def exhaust_over_B(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
                      factored=False):
     bestBW = Infinity
     bestPolys = []
@@ -92,14 +93,13 @@ def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
     indices_list = None
     subsets = None
     if factored:
-        subsets = Subsets(evals, n-k)
+        subsets = Subsets(evals, n-k-1)
     else:
         subsets = Subsets(F.list() * (n-k), n-k, submultiset=True)
     # Combinations of Subsets convert Subsets to lists, which is very slow, so
     # we do combinations of indices.
     indices_list = Combinations(range(len(subsets)), t)
     for indices in indices_list:
-        print count
         count += 1
         T = [ subsets[index] for index in indices ]
         P = None
@@ -123,7 +123,7 @@ def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
     return bestBW, bestPolys
 
 #
-# Run exhaust_over_F16 for each alpha^*, and write the results to outf (as
+# Run exhaust_over_B for each alpha^*, and write the results to outf (as
 # LaTeX code).
 #
 def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
@@ -138,7 +138,7 @@ def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
                 ))
     F.write('\\hline')
     for i in range(n):
-        bw, polys = exhaust_over_F16(evals, goodEnough, i, factored)
+        bw, polys = exhaust_over_B(evals, goodEnough, i, factored)
         F.write('$ \\zeta^{' + evals[i]._log_repr() +  '}$ & ')
         print i, bw
         for p in polys:
@@ -187,7 +187,7 @@ def prettyPrintFactored(p):
     return ret
 
 def main():
-    exhaustMore(goodEnough=16, factored=False)
+    exhaustMore(goodEnough=16, factored=True)
 
 if __name__ == '__main__':
     main()
