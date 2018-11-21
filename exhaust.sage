@@ -21,11 +21,12 @@
 n = 5
 k = 3
 t = 2
+subfield = 16
 
 # Set up our field and polynomial ring:
 # a is a primitive element for F; in this version of sage, it is a root of 
 # x^8 + x^4 + x^3 + x^2 + 1
-F.<a> = GF(2^8)
+F.<a> = GF(subfield^t)
 R.<X> = PolynomialRing(F)
 
 #
@@ -33,7 +34,7 @@ R.<X> = PolynomialRing(F)
 # pretty easy test :)
 #
 def linIndOverB(x,y):
-    return x^(15) == y^(15)
+    return x^(subfield-1) == y^(subfield-1)
 
 #
 # returns None if the scheme corresponding to P will fail to recover f(alpha^*)
@@ -88,34 +89,37 @@ def exhaust_over_F16(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
     bestPolys = []
     count = 0
     drawFrom = None
+    indices_list = None
+    subsets = None
     if factored:
-        drawFrom = evals
+        subsets = Subsets(evals, n-k)
     else:
-        drawFrom = F
-    subsets = Subsets(drawFrom, n-k)
-    for y in range(len(subsets)):
-        for z in range(y+1, len(subsets)):
-            T = [ subsets[y], subsets[z] ]
-            count += 1
-            if factored:
-                p0 = prod([ (X + x) for x in T[0] ])
-                p1 = prod([ (X + x) for x in T[1] ])
-            else:
-                p0 = sum([ (X^j * x) for x, j in zip(T[0], range(n-k)) ])
-                p1 = sum([ (X^j * x) for x, j in zip(T[1], range(n-k)) ])
-            P = [ p0, p1 ]
-            bw = checkSchemeOverB(evals, P, istar)
-            if bw != None:
-                if bw < bestBW:
-                    bestBW = bw
-                    bestPolys = P
-                # if bw <= goodEnough:
-                #    print 'SCHEME WITH BW=', bw, ':', p0, p1
+        subsets = Subsets(F.list() * (n-k), n-k, submultiset=True)
+    # Combinations of Subsets convert Subsets to lists, which is very slow, so
+    # we do combinations of indices.
+    indices_list = Combinations(range(len(subsets)), t)
+    for indices in indices_list:
+        print count
+        count += 1
+        T = [ subsets[index] for index in indices ]
+        P = None
+        if factored:
+            P = [ prod([ (X + x) for x in T[j] ]) for j in range(len(T)) ]
+        else:
+            P = [ sum([ (X^j * x) for x, j in zip(T[j], range(n-k)) ])
+                    for j in range(len(T)) ]
+        bw = checkSchemeOverB(evals, P, istar)
+        if bw != None:
+            if bw < bestBW:
+                bestBW = bw
+                bestPolys = P
+            # if bw <= goodEnough:
+            #    print 'SCHEME WITH BW=', bw, ':', p0, p1
 
-            if count % 1000 == 0:
-                print 'Check', count, 'best is', bestBW, 'with', bestPolys
-            if bestBW <= goodEnough:
-                return bestBW, bestPolys
+        if count % 1000 == 0:
+            print 'Check', count, 'best is', bestBW, 'with', bestPolys
+        if bestBW <= goodEnough:
+            return bestBW, bestPolys
     return bestBW, bestPolys
 
 #
@@ -183,7 +187,7 @@ def prettyPrintFactored(p):
     return ret
 
 def main():
-    exhaustMore(goodEnough=23, factored=False)
+    exhaustMore(goodEnough=16, factored=False)
 
 if __name__ == '__main__':
     main()
