@@ -1,5 +1,6 @@
 *.swp
-*.sage.py
+*.py
+*.pyc
 *.txt
 *.tex
 *.aux
