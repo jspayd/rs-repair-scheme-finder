@@ -18,6 +18,10 @@
 ##
 ###############################################################################
 
+import sys
+
+PADDING = 20
+
 n = 5
 k = 3
 t = 2
@@ -86,6 +90,7 @@ def checkSchemeOverB(evals, P, istar):
 #
 def exhaust_over_B(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
                      factored=False):
+    print 'Searching for polynomials for recovering %s.' % evals[istar]
     bestBW = Infinity
     bestPolys = []
     count = 0
@@ -101,6 +106,10 @@ def exhaust_over_B(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
     indices_list = Combinations(range(len(subsets)), t)
     for indices in indices_list:
         count += 1
+        print '\rChecking scheme %d/%d (%.1f%%)%s' % (count,
+                indices_list.cardinality(),
+                count*100.0/indices_list.cardinality(), ' '*PADDING),
+        sys.stdout.flush()
         T = [ subsets[index] for index in indices ]
         P = None
         if factored:
@@ -116,10 +125,12 @@ def exhaust_over_B(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
             # if bw <= goodEnough:
             #    print 'SCHEME WITH BW=', bw, ':', p0, p1
 
-        if count % 1000 == 0:
-            print 'Check', count, 'best is', bestBW, 'with', bestPolys
+        # if count % 1000 == 0:
+        #     print 'Check', count, 'best is', bestBW, 'with', bestPolys
         if bestBW <= goodEnough:
+            print
             return bestBW, bestPolys
+    print
     return bestBW, bestPolys
 
 #
