@@ -128,6 +128,12 @@ def exhaust_over_B(evals=[ a^i for i in range(n) ], goodEnough=64, istar=0,
 #
 def exhaustMore(evals=[ a^i for i in range(n) ], goodEnough=64,
                 outf='output.tex', factored=False):
+    print ('Exhausting over polynomials with coefficients in F_%d for t=%d, '
+           'n=%d, k=%d, and evaluation points %s.'
+          ) % (subfield^t, t, n, k, evals)
+    if factored:
+        print 'Only checking polynomials with %d roots in %s.' % (n-k-1, evals)
+
     F = open(outf, 'w')
     F.write('\\documentclass{article}\n\n')
     F.write('\\begin{document}')
