@@ -187,7 +187,7 @@ def exhaust_more(evals=[a^i for i in range(n)],
     F.write('\\hline')
     for i in range(n):
         bw, polys = exhaust_over_B(evals, good_enough, i, factored)
-        F.write('$ \\zeta^{' + evals[i]._log_repr() + '}$ & ')
+        F.write('$ ' + pretty_power(evals[i]) + '$ & ')
         print i, bw
         for p in polys:
             poly_str = None
@@ -204,6 +204,22 @@ def exhaust_more(evals=[a^i for i in range(n)],
     F.close()
 
 
+def pretty_power(p):
+    """
+    Given some p in F, return a nice LaTeX string representation of that
+    number.
+    """
+    if p == 0:
+        return '0'
+    elif p == 1:
+        return '1'
+    exp = int(p._log_repr())
+    if exp == 1:
+        return '\\zeta'
+    else:
+        return '\\zeta^{%d}' % exp
+
+
 def pretty_print(p):
     """
     Print out a polynomial as nice LaTeX code.
@@ -211,13 +227,18 @@ def pretty_print(p):
     c = p.coefficients(sparse=False)
     ret = ''
     for i in range(len(c)):
+        printed = False
         if c[i] == 0:
             continue
-        elif c[i] == 1:
-            pass
-        else:
-            ret += '\\zeta^{' + c[i]._log_repr() + '}'
-        ret += '\\,\\mathbf{X}^{' + str(i) + '}'
+        elif c[i] != 1:
+            ret += pretty_power(c[i])
+            printed = True
+        if i == 0 and not printed:
+            ret += '\\,1'
+        elif i == 1:
+            ret += '\\,\\mathbf{X}'
+        elif i != 0:
+            ret += '\\,\\mathbf{X}^{' + str(i) + '}'
         if i < len(c) - 1:
             ret += ' + '
     return ret
@@ -233,7 +254,15 @@ def pretty_print_factored(p):
         if multiplicity != 1:
             print 'Now that\'s strange'
             return None
-        ret += '(\\mathbf{X} + \\zeta^{' + rt._log_repr() + '})'
+        zeta = None
+        exp = int(rt._log_repr())
+        if exp % (len(F) - 1) == 0:
+            zeta = '1'
+        elif exp == 1:
+            zeta = '\\zeta'
+        else:
+            zeta = '\\zeta^{' + rt._log_repr() + '}'
+        ret += '(\\mathbf{X} + ' + zeta + ')'
     return ret
 
 
