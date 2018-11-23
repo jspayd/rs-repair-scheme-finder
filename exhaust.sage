@@ -33,7 +33,7 @@ R.<X> = PolynomialRing(F)
 # easy test :)
 #
 def linIndOverB(x, y):
-    return x^(subfield-1) == y^(subfield-1)
+    return x^(subfield-1) != y^(subfield-1)
 
 #
 # given a set of values in F, returns the rank of that set over B.
