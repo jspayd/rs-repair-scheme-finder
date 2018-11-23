@@ -129,17 +129,6 @@ def exhaust_over_B(evals=[a^i for i in range(n)],
     num_schemes = combinations_count(poly_count, t)
     for T in schemes:
         count += 1
-        print ('\rChecking scheme %d/%d (%.1f%%). '
-               'Best scheme (bw %s): %s.%s'
-              ) % (
-            count,
-            num_schemes,
-            count * 100.0 / num_schemes,
-            best_bw,
-            best_polys,
-            ' ' * PADDING,
-        ),
-        sys.stdout.flush()
         P = None
         if factored:
             P = [prod([(X + x) for x in T_cur]) for T_cur in T]
@@ -152,6 +141,18 @@ def exhaust_over_B(evals=[a^i for i in range(n)],
             if bw < best_bw:
                 best_bw = bw
                 best_polys = P
+
+        if count % 1000 == 0:
+            print ('Checked scheme %d/%d (%.1f%%). '
+                   'Best scheme (bw %s): %s.%s'
+                  ) % (
+                count,
+                num_schemes,
+                count * 100.0 / num_schemes,
+                best_bw,
+                best_polys,
+                ' ' * PADDING,
+            )
 
         if best_bw <= good_enough:
             print
@@ -169,10 +170,11 @@ def exhaust_more(evals=[a^i for i in range(n)],
     LaTeX code).
     """
     print ('Exhausting over polynomials with coefficients in F_%d for t=%d, '
-           'n=%d, k=%d, and evaluation points %s.\n'
+           'n=%d, k=%d, and evaluation points %s.'
           ) % (subfield^t, t, n, k, evals)
     if factored:
         print 'Only checking polynomials with %d roots in %s.' % (n-k-1, evals)
+    print
 
     F = open(outf, 'w')
     F.write('\\documentclass{article}\n\n')
