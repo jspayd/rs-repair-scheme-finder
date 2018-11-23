@@ -38,7 +38,7 @@ def linIndOverB(x, y):
 #
 # given a set of values in F, returns the rank of that set over B.
 #
-def rank(vals):
+def rankOverB(vals):
     eq_classes = []
     for val in vals:
         if val == 0: continue
@@ -65,13 +65,13 @@ def checkSchemeOverB(evals, P, istar):
         return None
 
     s = [ p(evals[istar]) for p in P ]
-    if rank(s) != t:
+    if rankOverB(s) != t:
         return None
     ret = 0
     for i in range(n):
         if i != istar:
             t_ = [ p(evals[i]) for p in P ]
-            ret += rank(t_)
+            ret += rankOverB(t_)
     ret = ret * log(subfield, 2)
     return ret
 
