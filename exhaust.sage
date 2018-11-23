@@ -25,12 +25,65 @@ n = 5
 k = 3
 t = 2
 subfield = 16
+bits = log(subfield, 2)
 
 
 # Set up our field and polynomial ring:
 # a is a primitive element for F.
 F.<a> = GF(subfield^t)
 R.<X> = PolynomialRing(F)
+
+
+def GF_at(field, ind):
+    """
+    For some finite field, gives the item at index ind based on the order of
+    iteration.
+    """
+    if ind == 0:
+        return 0
+    return field.gen() ^ (ind - 1)
+
+
+class Sequences:
+    """
+    An iterator that, given some set S and some l, allows the user to iterate
+    over sequences of length l of elements drawn from S.
+    """
+
+    def __init__(self, S, l):
+        self.S = S
+        self.l = l
+
+
+    def __iter__(self):
+        self.indices = [0] * self.l
+        self.stop = False
+        return self
+
+
+    def next(self):
+        if self.stop:
+            raise StopIteration
+        result = [self.S[i] for i in self.indices]
+        carry = True
+        i = 0
+        while carry and i < self.l:
+            self.indices[i] = (self.indices[i] + 1) % len(self.S)
+            carry = (self.indices[i] == 0)
+            i += 1
+        if carry:
+            self.stop = True
+        return result
+
+
+    def __len__(self):
+        return len(self.S) ^ self.l
+
+
+    def __getitem__(self, arg):
+        return [GF_at(self.S, (arg // (len(self.S) ^ i)) % len(self.S))
+                for i in range(self.l)
+               ]
 
 
 def lin_ind_over_B(x, y):
@@ -80,7 +133,7 @@ def check_scheme_over_B(evals, P, istar):
         if i != istar:
             t_ = [p(evals[i]) for p in P]
             ret += rank_over_B(t_)
-    ret = ret * log(subfield, 2)
+    ret = ret * bits
     return ret
 
 
@@ -106,16 +159,18 @@ def exhaust_over_B(evals=[a^i for i in range(n)],
     if factored:
         subsets = Subsets(evals, n-k-1)
     else:
-        subsets = Subsets(F.list() * (n-k), n-k, submultiset=True)
+        subsets = Sequences(F, n-k)
     # Combinations of Subsets convert Subsets to lists, which is very slow, so
     # we do combinations of indices.
     indices_list = Combinations(range(len(subsets)), t)
+    num_schemes = indices_list.cardinality()
     for indices in indices_list:
         count += 1
-        print '\rChecking scheme %d/%d (%.1f%%)%s' % (
+        print '\rChecking scheme %d/%d (%.1f%%). Best BW = %s.%s' % (
             count,
-            indices_list.cardinality(),
-            count * 100.0 / indices_list.cardinality(),
+            num_schemes,
+            count * 100.0 / num_schemes,
+            best_bw,
             ' ' * PADDING,
         ),
         sys.stdout.flush()
@@ -153,7 +208,7 @@ def exhaust_more(evals=[a^i for i in range(n)],
     LaTeX code).
     """
     print ('Exhausting over polynomials with coefficients in F_%d for t=%d, '
-           'n=%d, k=%d, and evaluation points %s.'
+           'n=%d, k=%d, and evaluation points %s.\n'
           ) % (subfield^t, t, n, k, evals)
     if factored:
         print 'Only checking polynomials with %d roots in %s.' % (n-k-1, evals)
