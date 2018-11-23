@@ -16,9 +16,10 @@ have three roots in A to find such a scheme.
    -- Mary Wootters, September 2015
 """
 
+from itertools import combinations, product
 import sys
 
-PADDING = 20
+PADDING = 10
 
 # Constants related to particular repair scheme
 n = 5
@@ -32,58 +33,6 @@ bits = log(subfield, 2)
 # a is a primitive element for F.
 F.<a> = GF(subfield^t)
 R.<X> = PolynomialRing(F)
-
-
-def GF_at(field, ind):
-    """
-    For some finite field, gives the item at index ind based on the order of
-    iteration.
-    """
-    if ind == 0:
-        return 0
-    return field.gen() ^ (ind - 1)
-
-
-class Sequences:
-    """
-    An iterator that, given some set S and some l, allows the user to iterate
-    over sequences of length l of elements drawn from S.
-    """
-
-    def __init__(self, S, l):
-        self.S = S
-        self.l = l
-
-
-    def __iter__(self):
-        self.indices = [0] * self.l
-        self.stop = False
-        return self
-
-
-    def next(self):
-        if self.stop:
-            raise StopIteration
-        result = [self.S[i] for i in self.indices]
-        carry = True
-        i = 0
-        while carry and i < self.l:
-            self.indices[i] = (self.indices[i] + 1) % len(self.S)
-            carry = (self.indices[i] == 0)
-            i += 1
-        if carry:
-            self.stop = True
-        return result
-
-
-    def __len__(self):
-        return len(self.S) ^ self.l
-
-
-    def __getitem__(self, arg):
-        return [GF_at(self.S, (arg // (len(self.S) ^ i)) % len(self.S))
-                for i in range(self.l)
-               ]
 
 
 def lin_ind_over_B(x, y):
@@ -137,6 +86,18 @@ def check_scheme_over_B(evals, P, istar):
     return ret
 
 
+def combinations_count(p, r):
+    result = 1
+    for x in range(p - r + 1, p + 1):
+        result *= x
+    result /= factorial(r)
+    return result
+
+
+def product_count(p, r):
+    return p^r
+
+
 def exhaust_over_B(evals=[a^i for i in range(n)],
                    good_enough=64,
                    istar=0,
@@ -150,34 +111,38 @@ def exhaust_over_B(evals=[a^i for i in range(n)],
     goodEnough is a threshold: stop searching if you find a scheme with that
     many bits or fewer.
     """
-    print 'Searching for polynomials for recovering %s.' % evals[istar]
+    print 'Searching for polynomials for recovering evaluation at %s.' % (
+        evals[istar],
+    )
     best_bw = Infinity
     best_polys = []
     count = 0
-    indices_list = None
-    subsets = None
+    polys = None
+    poly_count = None
     if factored:
-        subsets = Subsets(evals, n-k-1)
+        polys = combinations(evals, n-k-1)
+        poly_count = combinations_count(len(evals), n-k-1)
     else:
-        subsets = Sequences(F, n-k)
-    # Combinations of Subsets convert Subsets to lists, which is very slow, so
-    # we do combinations of indices.
-    indices_list = Combinations(range(len(subsets)), t)
-    num_schemes = indices_list.cardinality()
-    for indices in indices_list:
+        polys = product(F, repeat=n-k)
+        poly_count = product_count(len(F), n-k)
+    schemes = combinations(polys, t)
+    num_schemes = combinations_count(poly_count, t)
+    for T in schemes:
         count += 1
-        print '\rChecking scheme %d/%d (%.1f%%). Best BW = %s.%s' % (
+        print ('\rChecking scheme %d/%d (%.1f%%). '
+               'Best scheme (bw %s): %s.%s'
+              ) % (
             count,
             num_schemes,
             count * 100.0 / num_schemes,
             best_bw,
+            best_polys,
             ' ' * PADDING,
         ),
         sys.stdout.flush()
-        T = [subsets[index] for index in indices]
         P = None
         if factored:
-            P = [prod([(X + x) for x in T[j]]) for j in range(len(T))]
+            P = [prod([(X + x) for x in T_cur]) for T_cur in T]
         else:
             P = [sum([(X^j * x) for x, j in zip(T[j], range(n-k))])
                  for j in range(len(T))
@@ -187,11 +152,7 @@ def exhaust_over_B(evals=[a^i for i in range(n)],
             if bw < best_bw:
                 best_bw = bw
                 best_polys = P
-            # if bw <= goodEnough:
-            #    print 'SCHEME WITH BW=', bw, ':', p0, p1
 
-        # if count % 1000 == 0:
-        #     print 'Check', count, 'best is', bestBW, 'with', bestPolys
         if best_bw <= good_enough:
             print
             return best_bw, best_polys
