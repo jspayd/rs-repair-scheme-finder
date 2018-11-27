@@ -156,7 +156,7 @@ class RegeneratingRSSchemeFinder:
     def __check_scheme_over_B(self, P, istar):
         """
         Returns None if the scheme corresponding to P will fail to recover
-        f(alpha^*) otherwise returns the number of bits needed to recover
+        f(alpha^*). Otherwise returns the number of bits needed to recover
         f(alpha^*) with this scheme.
 
         P should consist of t polynomials in R; istar is an index so that
@@ -178,6 +178,45 @@ class RegeneratingRSSchemeFinder:
         return ret
 
 
+    def __check_scheme_over_B_fast(self, P, istar):
+        """
+        Optimized for F = F_256 and B = F_16.
+
+        Returns None if the scheme corresponding to P will fail to recover
+        f(alpha^*).  Otherwise returns the number of bits needed to recover
+        f(alpha^*) with this scheme
+
+        P should consist of two polynomials in R; istar is an index so that
+        alpha^* = evals[istar].
+        """
+        if len(P) != 2:
+            print('P should consist of only two polynomials!')
+            return None
+        s0 = P[0](self.evals[istar])
+        s1 = P[1](self.evals[istar])
+        if (not self.__lin_ind_over_B(s0, s1)) or s0 == 0 or s1 == 0:
+            return None
+        ret = 0
+        for i in range(self.n):
+            if i!= istar:
+                bw = 0
+                t0 = P[0](self.evals[i])
+                t1 = P[1](self.evals[i])
+                if t0 == 0 and t1 != 0:
+                    bw += 1
+                elif t0 != 0 and t1 == 0:
+                    bw += 1
+                elif t0 == 0 and t1 == 0:
+                    bw += 0
+                elif not self.__lin_ind_over_B(t0, t1):
+                    bw += 1
+                else:
+                    bw += 2
+                ret += bw
+        ret = ret * self.B_bits
+        return ret
+
+
     def __exhaust_over_B(self,
                          good_enough=64,
                          istar=0,
@@ -195,6 +234,9 @@ class RegeneratingRSSchemeFinder:
         print 'Searching for polynomials for recovering evaluation at %s.' % (
             self.evals[istar],
         )
+        check_scheme = self.__check_scheme_over_B
+        if len(self.F) == 256 and self.t == 2:
+            check_scheme = self.__check_scheme_over_B_fast
         best_bw = Infinity
         best_polys = []
         count = 0
@@ -218,22 +260,22 @@ class RegeneratingRSSchemeFinder:
                      in zip(T[j], range(self.n-self.k))])
                      for j in range(len(T))
                     ]
-            bw = self.__check_scheme_over_B(P, istar)
+            bw = check_scheme(P, istar)
             if bw is not None:
                 if bw < best_bw:
                     best_bw = bw
                     best_polys = P
 
-            if count % 1000 == 0:
-                print ('Checked scheme %d/%d (%.1f%%). '
-                       'Best scheme (bw %s): %s.'
-                      ) % (
-                    count,
-                    num_schemes,
-                    count * 100.0 / num_schemes,
-                    best_bw,
-                    best_polys,
-                )
+            # if count % 1000 == 0:
+            #     print ('Checked scheme %d/%d (%.1f%%). '
+            #         'Best scheme (bw %s): %s.'
+            #           ) % (
+            #         count,
+            #         num_schemes,
+            #         count * 100.0 / num_schemes,
+            #         best_bw,
+            #         best_polys,
+            #     )
 
             if best_bw <= good_enough:
                 print
