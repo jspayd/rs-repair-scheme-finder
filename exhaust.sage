@@ -17,6 +17,19 @@ have three roots in A to find such a scheme.
 """
 
 from itertools import combinations, product
+import random
+import sys
+
+
+def random_combination(iterable, r):
+    """
+    Random selection from itertools.combinations(iterable, r).
+    <https://docs.python.org/2/library/itertools.html#recipes>
+    """
+    pool = tuple(iterable)
+    n = len(pool)
+    indices = sorted(random.sample(xrange(n), r))
+    return tuple(pool[i] for i in indices)
 
 
 def combinations_count(p, r):
@@ -121,6 +134,7 @@ class RegeneratingRSSchemeFinder:
         self.k = k
         self.B_size = len(F) ^ (1 / t)
         self.B_bits = log(self.B_size, 2)
+        self.B = [x for x in self.F if x^self.B_size == x]
         if evals is None:
             self.evals=[self.a^i for i in range(n)]
         else:
@@ -284,10 +298,79 @@ class RegeneratingRSSchemeFinder:
         return best_bw, best_polys
 
 
+    def __exhaust_over_B_special(self,
+                         good_enough=64,
+                         istar=0):
+        print 'Searching for polynomials for recovering evaluation at %s.' % (
+            self.evals[istar],
+        )
+        best_bw = Infinity
+        best_polys = []
+        evals = [self.evals[i] for i in range(len(self.evals)) if i != istar]
+        eval_pairs = product(evals, repeat=2)
+        num_schemes = ((product_count(len(evals), 2) - len(evals)) * len(self.F)
+            * self.B_size * self.B_size)
+        count = 0
+        for pair in eval_pairs:
+            if pair[0] == pair[1]:
+                continue
+            for ph in self.F:
+                for a in self.B:
+                    for b in self.B:
+                        count += 1
+                        if count % 1000 == 0:
+                            print '\r%d/%d (%.2f%%)%s' % (
+                                count,
+                                num_schemes,
+                                count * 100 / num_schemes,
+                                ' ' * 20
+                            ),
+                            sys.stdout.flush()
+                        p1_pts = (
+                            (pair[0], 1),
+                            (pair[1], ph),
+                        )
+                        p2_pts = (
+                            (pair[0], a),
+                            (pair[1], b * ph)
+                        )
+                        if p1_pts == p2_pts:
+                            continue
+                        try:
+                            p1 = self.R.lagrange_polynomial(p1_pts)
+                            p2 = self.R.lagrange_polynomial(p2_pts)
+                            P = (p1, p2)
+                            bw = self.__check_scheme_over_B_fast(P, istar)
+                            if bw is not None:
+                                if bw < best_bw:
+                                    best_bw = bw
+                                    best_polys = P
+                            # if count % 1000 == 0:
+                            #     print ('Checked scheme %d/%d (%.1f%%). '
+                            #         'Best scheme (bw %s): %s.'
+                            #           ) % (
+                            #         count,
+                            #         num_schemes,
+                            #         count * 100.0 / num_schemes,
+                            #         best_bw,
+                            #         best_polys,
+                            #     )
+                            if best_bw <= good_enough:
+                                print
+                                print
+                                return best_bw, best_polys
+                        except ZeroDivisionError:
+                            pass
+        print
+        print
+        return best_bw, best_polys
+
+
     def exhaust(self,
                 good_enough=64,
                 outf='output.tex',
-                factored=False):
+                factored=False,
+                special=False):
         """
         Run __exhaust_over_B for each alpha^*, and write the results to outf
         (as LaTeX code).
@@ -300,6 +383,9 @@ class RegeneratingRSSchemeFinder:
                 self.n-self.k-1,
                 self.evals,
             )
+        if special:
+            print 'Using special polynomials'
+        print 'Storing results in %s.' % outf
         print
 
         F = open(outf, 'w')
@@ -311,8 +397,15 @@ class RegeneratingRSSchemeFinder:
                  '\\alpha^*$   \\\\ \n'
                 ))
         F.write('\\hline')
+        totalbw = 0
         for i in range(self.n):
-            bw, polys = self.__exhaust_over_B(good_enough, i, factored)
+            bw = None
+            polys = None
+            if special:
+                bw, polys = self.__exhaust_over_B_special(good_enough, i)
+            else:
+                bw, polys = self.__exhaust_over_B(good_enough, i)
+            totalbw += bw
             F.write('$ ' + pretty_power(self.evals[i]) + '$ & ')
             print i, bw
             for p in polys:
@@ -328,19 +421,32 @@ class RegeneratingRSSchemeFinder:
         F.write('\\end{tabular}\n')
         F.write('\\end{document}')
         F.close()
+        return totalbw
 
 
 def main():
-    finder = RegeneratingRSSchemeFinder(
-        F=GF(256),
-        t=2,
-        n=5,
-        k=3,
-    )
-    finder.exhaust(
-        good_enough=20,
-        factored=False,
-    )
+    F.<g> = GF(256)
+    best_bw = Infinity
+    best_count = 0
+    count = 0
+    while True:
+        finder = RegeneratingRSSchemeFinder(
+            F=F,
+            t=2,
+            n=5,
+            k=3,
+            evals=random_combination(F, 5),
+        )
+        bw = finder.exhaust(
+            good_enough=16,
+            special=True,
+            outf='output-%d.tex' % count,
+        )
+        if bw < best_bw:
+            best_bw = bw
+            best_count = count
+        count += 1
+        print 'Best evals: index %d (total bw %d)' % (best_count, best_bw)
 
 
 if __name__ == '__main__':
