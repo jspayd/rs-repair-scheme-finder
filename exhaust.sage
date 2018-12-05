@@ -19,6 +19,7 @@ have three roots in A to find such a scheme.
 from itertools import combinations, product
 import random
 import sys
+import time
 
 
 def random_combination(iterable, r):
@@ -30,6 +31,32 @@ def random_combination(iterable, r):
     n = len(pool)
     indices = sorted(random.sample(xrange(n), r))
     return tuple(pool[i] for i in indices)
+
+
+def td_format(seconds):
+    """
+    Returns a nicely formatted string representation of a time given in
+    seconds.
+    <https://stackoverflow.com/questions/538666/python-format-timedelta-to-string>
+    """
+    seconds = int(seconds)
+    periods = [
+        ('year',        60*60*24*365),
+        ('month',       60*60*24*30),
+        ('day',         60*60*24),
+        ('hour',        60*60),
+        ('minute',      60),
+        ('second',      1)
+    ]
+
+    strings=[]
+    for period_name, period_seconds in periods:
+        if seconds >= period_seconds:
+            period_value , seconds = divmod(seconds, period_seconds)
+            has_s = 's' if period_value > 1 else ''
+            strings.append("%s %s%s" % (period_value, period_name, has_s))
+
+    return ", ".join(strings)
 
 
 def combinations_count(p, r):
@@ -374,6 +401,7 @@ class RegeneratingRSSchemeFinder:
         Run __exhaust_over_B for each alpha^*, and write the results to outf
         (as LaTeX code).
         """
+        start = time.time()
         print ('Exhausting over polynomials with coefficients in F_%d for '
                't=%d, n=%d, k=%d, and evaluation points %s.'
               ) % (len(self.F), self.t, self.n, self.k, self.evals)
@@ -420,6 +448,9 @@ class RegeneratingRSSchemeFinder:
         F.write('\\end{tabular}\n')
         F.write('\\end{document}')
         F.close()
+        end = time.time()
+        print 'Took %s.' % td_format(end - start)
+        print
         return totalbw
 
 
@@ -446,6 +477,8 @@ def main():
             best_count = count
         count += 1
         print 'Best evals: index %d (total bw %d)' % (best_count, best_bw)
+        print '=' * 40
+        print
 
 
 if __name__ == '__main__':
