@@ -309,58 +309,57 @@ class RegeneratingRSSchemeFinder:
         evals = [self.evals[i] for i in range(len(self.evals)) if i != istar]
         eval_pairs = product(evals, repeat=2)
         num_schemes = ((product_count(len(evals), 2) - len(evals)) * len(self.F)
-            * self.B_size * self.B_size)
+            * self.B_size)
         count = 0
         for pair in eval_pairs:
             if pair[0] == pair[1]:
                 continue
             for ph in self.F:
-                for a in self.B:
-                    for b in self.B:
-                        count += 1
-                        if count % 1000 == 0:
-                            print '\r%d/%d (%.2f%%)%s' % (
-                                count,
-                                num_schemes,
-                                count * 100 / num_schemes,
-                                ' ' * 20
-                            ),
-                            sys.stdout.flush()
-                        p1_pts = (
-                            (pair[0], 1),
-                            (pair[1], ph),
-                        )
-                        p2_pts = (
-                            (pair[0], a),
-                            (pair[1], b * ph)
-                        )
-                        if p1_pts == p2_pts:
-                            continue
-                        try:
-                            p1 = self.R.lagrange_polynomial(p1_pts)
-                            p2 = self.R.lagrange_polynomial(p2_pts)
-                            P = (p1, p2)
-                            bw = self.__check_scheme_over_B_fast(P, istar)
-                            if bw is not None:
-                                if bw < best_bw:
-                                    best_bw = bw
-                                    best_polys = P
-                            # if count % 1000 == 0:
-                            #     print ('Checked scheme %d/%d (%.1f%%). '
-                            #         'Best scheme (bw %s): %s.'
-                            #           ) % (
-                            #         count,
-                            #         num_schemes,
-                            #         count * 100.0 / num_schemes,
-                            #         best_bw,
-                            #         best_polys,
-                            #     )
-                            if best_bw <= good_enough:
-                                print
-                                print
-                                return best_bw, best_polys
-                        except ZeroDivisionError:
-                            pass
+                for b in self.B:
+                    count += 1
+                    if count % 1000 == 0:
+                        print '\r%d/%d (%.2f%%)%s' % (
+                            count,
+                            num_schemes,
+                            count * 100 / num_schemes,
+                            ' ' * 20
+                        ),
+                        sys.stdout.flush()
+                    p1_pts = (
+                        (pair[0], 1),
+                        (pair[1], ph),
+                    )
+                    p2_pts = (
+                        (pair[0], 0),
+                        (pair[1], b * ph)
+                    )
+                    if p1_pts == p2_pts:
+                        continue
+                    try:
+                        p1 = self.R.lagrange_polynomial(p1_pts)
+                        p2 = self.R.lagrange_polynomial(p2_pts)
+                        P = (p1, p2)
+                        bw = self.__check_scheme_over_B_fast(P, istar)
+                        if bw is not None:
+                            if bw < best_bw:
+                                best_bw = bw
+                                best_polys = P
+                        # if count % 1000 == 0:
+                        #     print ('Checked scheme %d/%d (%.1f%%). '
+                        #         'Best scheme (bw %s): %s.'
+                        #           ) % (
+                        #         count,
+                        #         num_schemes,
+                        #         count * 100.0 / num_schemes,
+                        #         best_bw,
+                        #         best_polys,
+                        #     )
+                        if best_bw <= good_enough:
+                            print
+                            print
+                            return best_bw, best_polys
+                    except ZeroDivisionError:
+                        pass
         print
         print
         return best_bw, best_polys
@@ -440,7 +439,7 @@ def main():
         bw = finder.exhaust(
             good_enough=16,
             special=True,
-            outf='output-%d.tex' % count,
+            outf='output-0-%d.tex' % count,
         )
         if bw < best_bw:
             best_bw = bw
