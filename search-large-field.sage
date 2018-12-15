@@ -10,7 +10,7 @@ def main():
     )
     finder.exhaust(
         good_enough=32,
-        special=True,
+        search=RegeneratingRSSchemeFinder.Search.ALL,
         outf='output/large-field.tex',
     )
 

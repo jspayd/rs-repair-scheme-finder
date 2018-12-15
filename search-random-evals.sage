@@ -1,4 +1,4 @@
-from tools.exhaust import RegeneratingRSSchemeFinder
+from tools.exhaust import RegeneratingRSSchemeFinder, random_combinations
 
 def main()
     F.<g> = GF(256^2)
@@ -12,7 +12,7 @@ def main()
         )
         bw = finder.exhaust(
             good_enough=16,
-            special=True,
+            search=RegeneratingRSSchemeFinder.Search.LINES,
             outf='output/output-%d.tex' % count,
         )
         if bw < best_bw:
