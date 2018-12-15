@@ -1,19 +1,22 @@
 """
-This file finds a linear repair scheme for the (10,14)-GRS code implemented at
-https://github.com/facebookarchive/hadoop-20/tree/master/src/contrib/raid/src/java/org/apache/hadoop/raid
+This module finds linear repair schemes for Reed-Solomon codes. It is based on
+code by Venkatesan Guruswami and Mary Wootters for finding a scheme for the
+(14,10)-GRS code used in Facebook's Hadoop analytics cluster at
+<https://github.com/facebookarchive/hadoop-20/tree/master/src/contrib/raid/src/
+java/org/apache/hadoop/raid>.
 
-This code is a GRS code with evaluation points A = {1, a, a^2, ..., a^13},
-where a is a primitive element of GF(2^8).
+For a code over finite field F with message length k, codeword length n, and
+evaluation points A, by the work of Guruswami and Wootters, it suffices to
+find, for each a* in A, a set P of t (n-k-1)-degree polynomials over
+a subfield B of F where t is the degree of F over B, so that the set {p(a) : p
+in P} is low rank over B for all a in A \ {a*}, and full rank for a = a*.
 
-By our work, it suffices to find, for each alpha^* = a^{i*} in A, a set of
-two cubic polynomials over GF(2^4), so that p_1(alpha), p_2(alpha) are
-linearly dependent over GF(2^4) for many alpha \neq alpha^*, but
-p_1(alpha*), p_2(alpha*) are linearly independent.
-
-This file exhaustively searches over cubic polynomials over GF(2^8) which
-have three roots in A to find such a scheme.
-
-   -- Mary Wootters, September 2015
+This file has three kinds of searches:
+  1) exhausting over all (n-k-1)-degree polynomials over F.
+  2) exhausting over all polynomials with (n-k-1) roots in F.
+  3) a special search designed specifically for the case that (n-k) = 2 and t =
+     2 that searches over sets of polynomials guaranteed to have linearly
+     dependent evaluations for at least two evaluation points.
 """
 
 from itertools import combinations, product
@@ -37,7 +40,8 @@ def td_format(seconds):
     """
     Returns a nicely formatted string representation of a time given in
     seconds.
-    <https://stackoverflow.com/questions/538666/python-format-timedelta-to-string>
+    <https://stackoverflow.com/questions/538666/
+    python-format-timedelta-to-string>
     """
     seconds = int(seconds)
     periods = [
