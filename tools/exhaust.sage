@@ -21,20 +21,8 @@ This file has three kinds of searches:
 
 from itertools import chain, combinations, product
 from enum import Enum
-import random
 import sys
 import time
-
-
-def random_combination(iterable, r):
-    """
-    Random selection from itertools.combinations(iterable, r).
-    <https://docs.python.org/2/library/itertools.html#recipes>
-    """
-    pool = tuple(iterable)
-    n = len(pool)
-    indices = sorted(random.sample(xrange(n), r))
-    return tuple(pool[i] for i in indices)
 
 
 def td_format(seconds):
