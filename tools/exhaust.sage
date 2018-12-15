@@ -159,7 +159,7 @@ class RegeneratingRSSchemeFinder:
         self.t = t
         self.n = n
         self.k = k
-        self.B_size = len(F) ^ (1 / t)
+        self.B_size = int(len(F) ^ (1 / t))
         self.B_bits = log(self.B_size, 2)
         self.B = [x for x in self.F if x^self.B_size == x]
         if evals is None:
@@ -452,34 +452,3 @@ class RegeneratingRSSchemeFinder:
         print 'Took %s.' % td_format(end - start)
         print
         return totalbw
-
-
-def main():
-    F.<g> = GF(256)
-    best_bw = Infinity
-    best_count = 0
-    count = 0
-    while True:
-        finder = RegeneratingRSSchemeFinder(
-            F=F,
-            t=2,
-            n=5,
-            k=3,
-            evals=random_combination(F, 5),
-        )
-        bw = finder.exhaust(
-            good_enough=16,
-            special=True,
-            outf='output-0-%d.tex' % count,
-        )
-        if bw < best_bw:
-            best_bw = bw
-            best_count = count
-        count += 1
-        print 'Best evals: index %d (total bw %d)' % (best_count, best_bw)
-        print '=' * 40
-        print
-
-
-if __name__ == '__main__':
-    main()
