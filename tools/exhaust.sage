@@ -289,10 +289,10 @@ class RegeneratingRSSchemeFinder:
                 (
                     (
                         (
-                            ((pair[0], 1), (pair[1], ph)),
-                            ((pair[0], 0), (pair[1], b * ph))
-                        ) for ph in self.F
-                    ) for b in self.B
+                            ((pair[0], 1), (pair[1], b)),
+                            ((pair[0], 0), (pair[1], b * y))
+                        ) for b in self.F
+                    ) for y in self.B
                 ) for pair in eval_pairs
             ))
             schemes = (
@@ -302,7 +302,6 @@ class RegeneratingRSSchemeFinder:
             num_schemes = ((product_count(len(evals), 2) - len(evals)) *
                 len(self.F) * self.B_size)
         return schemes, num_schemes
-
 
 
     def __exhaust_over_B(self,
