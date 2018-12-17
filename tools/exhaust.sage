@@ -19,7 +19,7 @@ This file has three kinds of searches:
      dependent evaluations for at least two evaluation points.
 """
 
-from itertools import chain, combinations, product
+from itertools import chain, combinations, permutations, product
 from enum import Enum
 import sys
 import time
@@ -52,23 +52,29 @@ def td_format(seconds):
     return ", ".join(strings)
 
 
-def combinations_count(p, r):
+def combinations_count(n, r):
     """
-    Returns the number of combinations of length r drawn from p items.
+    Returns the number of combinations of length r drawn from n items.
+    """
+    return permutations_count(n, r) / factorial(r)
+
+
+def permutations_count(n, r):
+    """
+    Returns the number of permutations of length r drawn from n items.
     """
     result = 1
-    for x in range(p - r + 1, p + 1):
+    for x in range(n - r + 1, n + 1):
         result *= x
-    result /= factorial(r)
     return result
 
 
-def product_count(p, r):
+def product_count(n, r):
     """
     Returns the number of elements in the r-fold Cartesian product of a set of
-    cardinality p with itself.
+    cardinality n with itself.
     """
-    return p^r
+    return n^r
 
 
 def pretty_power(p):
@@ -283,8 +289,7 @@ class RegeneratingRSSchemeFinder:
         elif search == self.Search.LINES:
             evals = [self.evals[i] for i in range(len(self.evals)) if i !=
                      istar]
-            eval_pairs = (pair for pair in product(evals, repeat=2) if
-                          pair[0] != pair[1])
+            eval_pairs = permutations(evals, 2)
             pts_sets = chain.from_iterable(chain.from_iterable(
                 (
                     (
@@ -299,8 +304,8 @@ class RegeneratingRSSchemeFinder:
                 [self.R.lagrange_polynomial(pts) for pts in pts_set] for
                 pts_set in pts_sets
             )
-            num_schemes = ((product_count(len(evals), 2) - len(evals)) *
-                len(self.F) * self.B_size)
+            num_schemes = (permutations_count(len(evals), 2) * len(self.F) *
+                          self.B_size)
         return schemes, num_schemes
 
 
